@@ -3,11 +3,7 @@
 #include "q565.h"
 QImageIOPlugin::Capabilities Q565ImageFormatPlugin::capabilities(QIODevice *device, const QByteArray &format) const
 {
-    qDebug() << "Plugin capabilities called";
-
     if (format == Q565_Encoder::Q565_FORMAT_TAG || format.isEmpty()) {
-
-        qDebug() << "Found q565 Format: " << format;
         if(device != nullptr) {
             if (!device->isOpen()) {
                 return (QImageIOPlugin::Capabilities)0x0;

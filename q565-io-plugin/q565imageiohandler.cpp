@@ -49,12 +49,14 @@ bool Q565ImageIOHandler::read(QImage* image) {
         unsigned char type{0};
         unsigned char data{0};
         int x{0},y{0};
-        quint16 rgb;
+        quint16 rgb = 0;
         quint8  allocatedColors{0};
         quint8 colorIndex{0};
-        bool wasAddedToTable{false};
-        QHash<quint8, quint16> colorTable;
+        QMap<quint8, quint16> colorTable;
         colorTable.clear();
+        colorTable.insert(0, 0); // white
+        colorTable.insert(63, 0xFFFF); // black
+        QRgb lastPixel;
         while(!(y > height) && iodevice->read(reinterpret_cast<char*>(&readBuffer), 1) == 1) {
             if(Q565_Encoder::decodeByte(readBuffer, type, data) ){
                 switch(type) {
@@ -62,37 +64,45 @@ bool Q565ImageIOHandler::read(QImage* image) {
                         // data is an index for rgb (0..63)
                         if(colorTable.contains(data)) {
                             rgb = colorTable.value(data);
-                            //qDebug() << "Fetched color hash" << data << " with pixel " << QBitArray::fromBits((char*)&rgb, 16);
-                            Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
+                            lastPixel = Q565_Encoder::convertToQRgb(rgb);
+                            Q565_Encoder::writePixel(result, lastPixel, x, y);
                         } else {
-                            qDebug() << "Color index requested not in the color table" << data;
+                            qDebug() << "Color index requested not in the color table" << data << " X: " << x << " Y: " << y;
                             qDebug() << "Color Table has " << colorTable.size() << " colors";
+                            Q565_Encoder::writePixel(result, lastPixel, x, y);
                         }
                         break;
                     }
                     case Q565_Encoder::Q565_OP_DIFF: {
                         auto newrgb = Q565_Encoder::getPixelDiff(rgb, data);
                         rgb = newrgb;
-                        Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
-                        break;
+                        //quint8 colorHash = Q565_Encoder::encodeColorTable(rgb, colorTable, wasAddedToTable);
+                        lastPixel = Q565_Encoder::convertToQRgb(rgb);
+                        Q565_Encoder::writePixel(result, lastPixel, x, y);
+                        continue;
                     }
                     case Q565_Encoder::Q565_OP_LUMA: {
                         if(iodevice->read(reinterpret_cast<char*>(&readBuffer), 1) == 1) {
-                            quint8 luma2;
-                            Q565_Encoder::decodeByte(readBuffer, type, luma2);
                             if((data & 0b00100000) == 0) { // handle luma
-                                auto lumaRgb = Q565_Encoder::getPixelLuma(rgb, data, luma2);
-                                rgb = lumaRgb;
-                                Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
+                                rgb = Q565_Encoder::getPixelLuma(rgb, data, readBuffer);
+                                lastPixel = Q565_Encoder::convertToQRgb(rgb);
+                                quint8 colorHash = Q565_Encoder::encodeColorTable(rgb, colorTable);
+                                //Q565_Encoder::printPixelData(rgb, colorHash, x, y);
+                                Q565_Encoder::writePixel(result, lastPixel, x, y);
                             } else { // indexed diff
-                                quint8 colorHash = Q565_Encoder::getPixelHashIndex(luma2);
+                                quint8 colorHash = readBuffer & 0b111111;
                                 if(colorTable.contains(colorHash)) {
                                     quint16 color = colorTable.value(colorHash);
-                                    auto diffRgb = Q565_Encoder::getPixelIndexedDiff(color, data, luma2);
-                                    rgb = diffRgb;
-                                    Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
+                                    rgb = Q565_Encoder::getPixelIndexedDiff(color, data, readBuffer);
+                                    quint8 colorHash = Q565_Encoder::encodeColorTable(rgb, colorTable);
+                                    //Q565_Encoder::printPixelData(rgb, colorHash, x, y);
+                                    lastPixel = Q565_Encoder::convertToQRgb(rgb);
+                                    Q565_Encoder::writePixel(result, lastPixel, x, y);
                                 } else {
-                                    qDebug() << "Requested invalid color hash index: " << colorHash;
+                                    qDebug() << "Requested invalid color hash from diff index: " << colorHash << " X: " << x << " Y: " << y;
+                                    quint8 colorHash = data & 0b11111;
+                                    qDebug() << "Requested invalid color hash from previous data index: " << colorHash << " X: " << x << " Y: " << y;
+                                    Q565_Encoder::writePixel(result, lastPixel, x, y);
                                 }
                             }
                         } else {
@@ -111,20 +121,22 @@ bool Q565ImageIOHandler::read(QImage* image) {
                                 rgb = Q565_Encoder::decodePixel(bufferInt[0], bufferInt[1]); // sent little endian (low end first)
                                 // write current pixel once,
                                 // check if color array is full
-                                quint8 colorHash = Q565_Encoder::encodeColorTable(rgb, colorTable, wasAddedToTable);
-                                Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
+                                quint8 colorHash = Q565_Encoder::encodeColorTable(rgb, colorTable);
+                                //Q565_Encoder::printPixelData(rgb, colorHash, x, y);
+                                lastPixel = Q565_Encoder::convertToQRgb(rgb);
+                                Q565_Encoder::writePixel(result, lastPixel, x, y);
                             } else {
                                 // error expected encoded RGB
-                                return false;
+                                qDebug() << "Failed to read pixel data ";
+                                //return false;
                             }
                         } else if (data <=61) { // run found
-                            //data +=1; // run count has a -1 offset when sent
+                            data +=1; // run count has a -1 offset when sent
                             //qDebug() << "Decode: Found run of " << data << "of pixel ";
                             while(data > 0) {
-                                Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
+                                Q565_Encoder::writePixel(result, lastPixel, x, y);
                                 --data;
                             }
-                            Q565_Encoder::writePixel(result, Q565_Encoder::convertToQRgb(rgb), x, y);
                         } else {
                             qDebug() << "Received OP_END " << readBuffer;
                         }
@@ -136,17 +148,7 @@ bool Q565ImageIOHandler::read(QImage* image) {
                     }
                 }
             }
-            // process read buffer
-            // decode type
-            // decode data based on  type
-            // switch(type)
-            // if pixel, set current pixel, draw pixel
-            // if run, draw current pixel
-            // if from color palette, set current pixel color from color palette, draw pixel
-            // if
         }
-        qDebug() << "processed " << bytesToRead - 8;
-
         (*image) = result;
     }
     return true;
