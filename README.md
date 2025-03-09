@@ -1,5 +1,6 @@
 # q565viewer
 A visual conversion tool that will help test q565 implementations.
+This tool demonstrates creating a Qt5 image format plugin as well as unit testing it.
 
 ![Screenshot](docs/screenshot.png)
 
