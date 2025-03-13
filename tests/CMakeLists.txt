@@ -33,4 +33,3 @@ target_sources(q565benchmarking
 )
 
 target_compile_definitions(q565benchmarking PUBLIC Q565_TEST_QML_MAIN="${CMAKE_CURRENT_SOURCE_DIR}/CorruptImageViewer.qml")
-set(Q565_TEST_QML_MAIN "${CMAKE_CURRENT_SOURCE_DIR}/")
