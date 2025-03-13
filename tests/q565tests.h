@@ -123,13 +123,14 @@ namespace Q565Test{
 
     static void showCorruptImages()
     {
-        int args{0};
+#ifdef Q565_TEST_QML_MAIN
         qApp->setApplicationName("Corrupt Image Viewer");
         //qmlRegisterType<Q565Transcoder>("com.q565viewer.components", 1, 0, "Q565Transcoder");
         QQmlApplicationEngine engine(qApp);
         engine.rootContext()->setContextProperty("CorruptImages", corruptImages);
         engine.rootContext()->setContextProperty("OriginalImages", originalImages);
-        engine.load("/home/topher/projects/q565view-github/tests/CorruptImageViewer.qml");
+        engine.load(Q565_TEST_QML_MAIN);
         qApp->exec();
+#endif
     }
 }
