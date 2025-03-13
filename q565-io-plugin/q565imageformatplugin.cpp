@@ -27,7 +27,6 @@ QImageIOPlugin::Capabilities Q565ImageFormatPlugin::capabilities(QIODevice *devi
 QImageIOHandler* Q565ImageFormatPlugin::create(QIODevice *device, const QByteArray &format) const
 {
     if (format == Q565_Encoder::Q565_FORMAT_TAG || format.isEmpty()) {
-        qDebug() << "Invoking create for Q565 image io plugin and handler";
         Q565ImageIOHandler* handler = new Q565ImageIOHandler();
         handler->setDevice(device);
         handler->setFormat(format);

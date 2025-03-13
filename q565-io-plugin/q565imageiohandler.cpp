@@ -4,13 +4,11 @@
 #include <QDebug>
 bool Q565ImageIOHandler::canRead() const {
     // Implement logic to check if the device contains data that can be read by this handler
-    qDebug() << "Inovking Q565ImageIOHandler::canRead()";
     return true;
 }
 
 bool Q565ImageIOHandler::read(QImage* image) {
     // Implement image reading logic
-    qDebug() << "Invoking Q565ImageIOHandler::read()";
     if(image == nullptr) {
         qDebug() << "Q565ImageIOHandler::read - image is null";
     } else {
@@ -39,7 +37,6 @@ bool Q565ImageIOHandler::read(QImage* image) {
             }
         }
         QImage result(width, height, QImage::Format_ARGB32);
-        qDebug() << "Loaded image with size" << result.sizeInBytes();
         // parse each byte and determine what they are
         const int bytesToRead = iodevice->size();
         if(bytesToRead > 1024000000) { // 10 mb
@@ -137,8 +134,6 @@ bool Q565ImageIOHandler::read(QImage* image) {
                                 Q565_Encoder::writePixel(result, lastPixel, x, y);
                                 --data;
                             }
-                        } else {
-                            qDebug() << "Received OP_END " << readBuffer;
                         }
                         break;
                     }
@@ -158,10 +153,8 @@ bool Q565ImageIOHandler::write(const QImage & image) {
     auto iodevice = device();
     if(iodevice != nullptr) {
         QByteArray* byteArray = new QByteArray;
-        qDebug() << "Image to write size: " << image.sizeInBytes();
         Q565_Encoder::encode(image, byteArray);
         if(byteArray->size() > 0) {
-            qDebug() << "Bytes of data to write: " << byteArray->size();
             iodevice->write(*byteArray);
             delete byteArray;
             return true;

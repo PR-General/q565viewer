@@ -7,9 +7,11 @@ macro(Q565Test TestName)
     set(targetName "${TestName}")
     set(testProjectName "${TestName}")
     string(TOLOWER ${TestName} TestSourceFileName)
-    add_executable(${targetName} "${TestSourceFileName}.cpp")
+    add_executable(${targetName}
+        q565tests.h
+        "${TestSourceFileName}.cpp")
     target_include_directories(${targetName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(${targetName} PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Test)
+    target_link_libraries(${targetName} PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Gui Qt${QT_VERSION_MAJOR}::Qml Qt${QT_VERSION_MAJOR}::Test)
     if(DEFINED QT_IMAGE_ROOT_DIR)
         target_compile_definitions(${targetName} PUBLIC QT_IMAGE_ROOT_DIR="${QT_IMAGE_ROOT_DIR}")
     endif()
@@ -24,3 +26,9 @@ macro(Q565Test TestName)
 endmacro()
 
 Q565Test(q565benchmarking)
+
+target_sources(q565benchmarking
+  PRIVATE
+    CorruptImageViewer.qml
+)
+

@@ -8,13 +8,16 @@ find_package(Qt6 REQUIRED COMPONENTS Quick Test)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
-set(QT_DEPLOY_PLUGINS_DIR ${CMAKE_BINARY_DIR})
-set(QT_TEST_BIN ${CMAKE_BINARY_DIR}/tests/)
+set(DEPLOY_Q565_PLUGIN_TO ${CMAKE_BINARY_DIR};${CMAKE_BINARY_DIR}/tests)
+
 set(QT_IMAGE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/images/)
 
-enable_testing(true)
 
+# Include the Q565 image format plugin
 add_subdirectory(q565-io-plugin)
+
+# enable and include (all) unit tests
+enable_testing(true)
 add_subdirectory(tests/)
 
 qt_add_executable(appq565viewer
@@ -22,7 +25,6 @@ qt_add_executable(appq565viewer
 )
 
 
-add_test(NAME q565benchmark COMMAND benchmark)
 
 qt_add_qml_module(appq565viewer
     URI q565viewer

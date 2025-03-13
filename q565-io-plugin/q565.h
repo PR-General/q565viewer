@@ -175,8 +175,8 @@ namespace Q565_Encoder {
                 && b_diff <= 3 && b_diff >= 0) { // Can be encoded
                 quint8 byte1 = Q565_OP_INDEX_DIFF | (g_diff << 2) | r_diff;
                 quint8 byte2 = (b_diff << 6) | i.key();
-                qDebug() << "Encoding index diff " << "Red: " << r << " Green: " << g << " Blue: " << b;
-                qDebug() << "Index Diff Bytes: [0](" << QString::number(byte1, 2) <<  ") [1](" << QString::number(byte2, 2) << ")";
+                //qDebug() << "Encoding index diff " << "Red: " << r << " Green: " << g << " Blue: " << b;
+                //qDebug() << "Index Diff Bytes: [0](" << QString::number(byte1, 2) <<  ") [1](" << QString::number(byte2, 2) << ")";
                 encodeArray->append(byte1);
                 encodeArray->append(byte2);
                 return true;
@@ -234,7 +234,7 @@ namespace Q565_Encoder {
         }
         QImage convertedImage = image;//convertToFormat(QImage::Format_RGB16);
         encodeArray->append(Q565_FORMAT_TAG); // write the magic header
-        qDebug() << "Encoding image " << convertedImage.height() << "x" << convertedImage.width();
+        // qDebug() << "Encoding image " << convertedImage.height() << "x" << convertedImage.width();
         quint16 w16(convertedImage.width());
         quint16 h16(convertedImage.height());
         // encode in little endian, 0xFF

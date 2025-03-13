@@ -159,7 +159,7 @@ QString Q565Transcoder::decodeQRGB565(QUrl fileUrl)
             // Generating statements takes a long time on large files
             generateStatements(fileUrl);
         }
-        qDebug() << "Successfully loaded image";
+        // qDebug() << "Successfully loaded image";
         outputPath = fileUrl.path().replace(".q565", "(2).png");
         image.save(outputPath, "png");
         mSizeOut = image.sizeInBytes();
@@ -179,7 +179,7 @@ QString Q565Transcoder::encodeQARGB32(QUrl fileUrl)
         outputPath = fileUrl.path();
         QString type = outputPath.mid(outputPath.lastIndexOf("."));
         outputPath = fileUrl.path().replace(type, ".q565");
-        qDebug() << "Successfully loaded image";
+        // qDebug() << "Successfully loaded image";
         image.save(outputPath, "q565");
         QFileInfo fileInfo(outputPath);
         if(fileInfo.exists() && fileInfo.isFile()) {

@@ -20,18 +20,11 @@ target_link_libraries(q565
 target_include_directories(q565 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-# When the library is built, copy it into the path of the applications build directy if the plugin directory was defined
-if(QT_DEPLOY_PLUGINS_DIR)
-    file(MAKE_DIRECTORY ${QT_DEPLOY_PLUGINS_DIR}/imageformats/)
-    add_custom_command(TARGET q565
-                       POST_BUILD
-                       COMMAND ${CMAKE_COMMAND} -E copy libq565.so ${QT_DEPLOY_PLUGINS_DIR}/imageformats
-    )
-endif()
-if(QT_TEST_BIN)
-    file(MAKE_DIRECTORY ${QT_TEST_BIN}/imageformats/)
-    add_custom_command(TARGET q565
-                       POST_BUILD
-                       COMMAND ${CMAKE_COMMAND} -E copy libq565.so ${QT_TEST_BIN}/imageformats
-    )
-endif()
+foreach(DEPLOY_PATH ${DEPLOY_Q565_PLUGIN_TO})
+        message("Deploying plugin to: " ${DEPLOY_PATH}/imageformats/)
+        file(MAKE_DIRECTORY ${DEPLOY_PATH}/imageformats/)
+        add_custom_command(TARGET q565
+                           POST_BUILD
+                           COMMAND ${CMAKE_COMMAND} -E copy libq565.so ${DEPLOY_PATH}/imageformats/
+        )
+endforeach()

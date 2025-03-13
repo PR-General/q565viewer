@@ -1,14 +1,9 @@
 #include <QObject>
 #include <QDebug>
-#include <QTest>
 #include <QJsonArray>
-#include <QFile>
 #include <QFileInfo>
-#include <QCoreApplication>
 #include <QImage>
-
-constexpr char Q565_ENCODER[] = "q565-rust";
-constexpr char AIOUNCHAINED_PY[] = "aio-unchained-py";
+#include "q565tests.h"
 class Q565Benchmarking : public QObject
 {
     Q_OBJECT
@@ -17,57 +12,49 @@ public:
         : QObject{parent}
     {}
 
-    static void initMain()
-    {
-        // clean any temporary test cases
-        // remove all .q565 files in executable dir
-    }
-
-
 private slots:
     void initTestCase()
     {
+
+        auto testFiles = Q565Test::getTestFileNames();
+        auto pathToImages = Q565Test::getImageDataPath();
+        auto pathToRustEncodedData = Q565Test::getRustEncodedDataPath();
+        auto pathToPythonEncodedData = Q565Test::getPythonEncodedDataPath();
+        // for each file remove the artifacts from previous runs
 
     }
 
     void encodeCompare_data()
     {
-        outputDir = QCoreApplication::applicationDirPath();
+        outputDir = Q565Test::getOutputPath();
         qDebug() << "Unit test artifacts will be written to" << outputDir;
-        // load test data
-        // look for file next to
+        QDir dir(outputDir);
+        if(!dir.exists()) { // make the output directory if it does not exist
+            QCOMPARE(dir.mkpath(outputDir),true); // fail if cannot create
+        }
         QTest::addColumn<QString>("inputFile");
         QTest::addColumn<QString>("outputFile");
         QTest::addColumn<QString>("encoder");
         QTest::addColumn<QString>("testFile");
 
-#ifdef QT_IMAGE_ROOT_DIR
-        QString fullPathToImagesSource(QT_IMAGE_ROOT_DIR);
-        QString rgbaFolder(fullPathToImagesSource);
-        rgbaFolder.append( + "rgba/");
-        QString q565RustFolder(fullPathToImagesSource);
-        q565RustFolder.append(Q565_ENCODER);
-        q565RustFolder.append("/");
-        QString q565PyFolder(fullPathToImagesSource);
-        q565RustFolder.append("q565py/");
+        auto testFiles = Q565Test::getTestFileNames();
+        auto pathToImages = Q565Test::getImageDataPath();
+        auto pathToRustEncodedData = Q565Test::getRustEncodedDataPath();
+        auto pathToPythonEncodedData = Q565Test::getPythonEncodedDataPath();
 
-// add files
-        QTest::newRow("testing_rust") << QString(rgbaFolder + "testing.png") << QString(outputDir + "/testing.q565") << Q565_ENCODER << QString(q565RustFolder + "testing_rust.png");
-        QTest::newRow("testing_py") << QString(rgbaFolder + "testing.png") << QString(outputDir + "/testing.q565") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_py.png");
-        QTest::newRow("testing_h_rust") << QString(rgbaFolder + "testing_h.png") << QString(outputDir + "/testing_h.q565") << Q565_ENCODER << QString(q565RustFolder + "testing_h_rust.png");
-        QTest::newRow("testing_h_py") << QString(rgbaFolder + "testing_h.png") << QString(outputDir + "/testing_h.q565") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_h_py.png");
-        QTest::newRow("testing_v_rust") << QString(rgbaFolder + "testing_v.png") << QString(outputDir + "/testing_v.q565") << Q565_ENCODER << QString(q565RustFolder + "testing_v_rust.png");
-        QTest::newRow("testing_v_py") << QString(rgbaFolder + "testing_v.png") << QString(outputDir + "/testing_v.q565") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_v_py.png");
-        QTest::newRow("testcard_rgba_rust") << QString(rgbaFolder + "testcard_rgba.png") << QString(outputDir + "/testcard_rgba.q565") << Q565_ENCODER << QString(q565RustFolder + "testcard_rgb_rust.png");
-        QTest::newRow("testcard_rgba_py") << QString(rgbaFolder + "testcard_rgba.png") << QString(outputDir + "/testcard_rgba.q565") << AIOUNCHAINED_PY << QString(q565PyFolder + "testcard_rgb_py.png");
-        QTest::newRow("solstice_rust") << QString(rgbaFolder + "GM-Pontiac-Solstice.png") << QString(outputDir + "/testcard_rgba.q565") << Q565_ENCODER << QString(q565RustFolder + "testcard_rgb_rust.png");
-        QTest::newRow("solstice_py") << QString(rgbaFolder + "GM-Pontiac-Solstice.png") << QString(outputDir + "/testcard_rgba.q565") << AIOUNCHAINED_PY << QString(q565PyFolder + "testcard_rgb_py.png");
-
-
-#else
-        qDebug() << "Missing image source path, no files were added to the test case";
-#endif
-
+        // For each (raw) input image there is a corresponding python and rust encoded q565 image file
+        for(const auto& testFile : std::as_const(testFiles)) {
+            // Add the rust encoded data test
+            QTest::newRow((testFile + Q565Test::RUST_SIG).toStdString().data()) << pathToImages + testFile + Q565Test::PNG_SUFFIX                                  // png inputFile
+                                                                                << outputDir + testFile + Q565Test::Q565_SUFFIX                                    // outputFile
+                                                                                << Q565Test::Q565_ENCODER                                                          // encoder
+                                                                                << pathToRustEncodedData + testFile + Q565Test::RUST_SIG + Q565Test::Q565_SUFFIX;  // rust testFile
+            // Add the python encoded data test
+            QTest::newRow((testFile + Q565Test::PY_SIG).toStdString().data()) << pathToImages + testFile + Q565Test::PNG_SUFFIX                                    // png inputFile
+                                                                              << outputDir + testFile + Q565Test::Q565_SUFFIX                                      // outputFile
+                                                                              << Q565Test::AIOUNCHAINED_PY                                                         // encoder
+                                                                              << pathToPythonEncodedData + testFile + Q565Test::PY_SIG + Q565Test::Q565_SUFFIX;    // python testFile
+        }
     }
 
     void encodeCompare()
@@ -80,73 +67,86 @@ private slots:
         //QFileInfo inputInfo(inputFile);
         QImage inputImage;
         //QCOMPARE(inputInfo.exists(), true);
-        QBENCHMARK {
-            if(inputImage.load(inputFile) ){
-                inputImage.save(outputFile, "q565");
-            }else {
-                QCOMPARE(false, true);
+        if(inputImage.load(inputFile) ){
+            QBENCHMARK {
+                QVERIFY(inputImage.save(outputFile, "q565"));
             }
+            Q565Test::compareFileSizes(outputFile, encoder, testFile);
+        }else {
+            QCOMPARE(false, true);
         }
     }
+
+
     void decodeCompare_data() {
-        QTest::addColumn<QString>("inputFile");
-        QTest::addColumn<QString>("outputFile");
+        outputDir = Q565Test::getOutputPath();
         QTest::addColumn<QString>("encoder");
         QTest::addColumn<QString>("testFile");
-
-#ifdef QT_IMAGE_ROOT_DIR
-        QString fullPathToImagesSource(QT_IMAGE_ROOT_DIR);
-        QString rgbaFolder(fullPathToImagesSource);
-        rgbaFolder.append( + "rgba/");
-        QString q565RustFolder(fullPathToImagesSource);
-        q565RustFolder.append(Q565_ENCODER);
-        q565RustFolder.append("/");
-        QString q565PyFolder(fullPathToImagesSource);
-        q565RustFolder.append("q565py/");
-
-        // add files
-        QTest::newRow("testing_rust") << QString(outputDir + "/testing.q565") << QString(outputDir + "/testing.png") << Q565_ENCODER << QString(q565RustFolder + "testing_rust.png");
-        QTest::newRow("testing_py") << QString(outputDir + "/testing.q565") << QString(outputDir + "/testing.png") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_py.png");
-        QTest::newRow("testing_h_rust") << QString(outputDir + "/testing_h.q565") << QString(outputDir + "/testing_h.png") << Q565_ENCODER << QString(q565RustFolder + "testing_h_rust.png");
-        QTest::newRow("testing_h_py") << QString(outputDir + "/testing_h.q565") << QString(outputDir + "/testing_h.png") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_h_py.png");
-        QTest::newRow("testing_v_rust") << QString(outputDir + "/testing_v.q565") << QString(outputDir + "/testing_v.png") << Q565_ENCODER << QString(q565RustFolder + "testing_v_rust.png");
-        QTest::newRow("testing_v_py") << QString(outputDir + "/testing_v.q565") << QString(outputDir + "/testing_v.png") << AIOUNCHAINED_PY << QString(q565PyFolder + "testing_v_py.png");
-        QTest::newRow("testcard_rgba_rust") << QString(outputDir + "/testcard_rgba.q565") << QString(outputDir + "/testcard_rgba.png") << Q565_ENCODER << QString(q565RustFolder + "testcard_rgb_rust.png");
-        QTest::newRow("testcard_rgba_py") << QString(outputDir + "/testcard_rgba.q565") << QString(outputDir + "/testcard_rgba.png") << AIOUNCHAINED_PY << QString(q565PyFolder + "testcard_rgb_py.png");
-        QTest::newRow("solstice_rust") << QString(outputDir + "/M-Pontiac-Solstice.q565") << QString(outputDir + "/testcard_rgba.png") << Q565_ENCODER << QString(q565RustFolder + "testcard_rgb_rust.png");
-        QTest::newRow("solstice_py") << QString(outputDir + "/GM-Pontiac-Solstice.q565") << QString(outputDir + "/testcard_rgba.png") << AIOUNCHAINED_PY << QString(q565PyFolder + "testcard_rgb_py.png");
+        QTest::addColumn<QString>("outputFile");
+        QTest::addColumn<QString>("originalImage");
 
 
-#else
-        qDebug() << "Missing image source path, no files were added to the test case";
-#endif
+        auto testFiles = Q565Test::getTestFileNames();
+        auto pathToRustEncodedData = Q565Test::getRustEncodedDataPath();
+        auto pathToPythonEncodedData = Q565Test::getPythonEncodedDataPath();
+        auto pathToRawImages = Q565Test::getImageDataPath();
+
+        // For each (raw) input image there is a corresponding python and rust encoded q565 image files
+        for(const auto& testFile : std::as_const(testFiles)) {
+            QString testName(testFile);
+            // Add the rust encoded data test
+            QTest::newRow((testName + Q565Test::RUST_SIG).toStdString().data()) << Q565Test::Q565_ENCODER
+                                                                                << pathToRustEncodedData + testFile + Q565Test::RUST_SIG + Q565Test::Q565_SUFFIX  // Original Image
+                                                                                << outputDir + testFile + Q565Test::RUST_SIG + Q565Test::PNG_SUFFIX               // Original Image
+                                                                                << pathToRawImages + testFile  + Q565Test::PNG_SUFFIX;                            // Original Image
+            // Add the python encoded data test
+            QTest::newRow((testName + Q565Test::PY_SIG).toStdString().data()) << Q565Test::AIOUNCHAINED_PY
+                                                                              << pathToPythonEncodedData + testFile + Q565Test::PY_SIG + Q565Test::Q565_SUFFIX // Original Image
+                                                                              << outputDir + testFile + Q565Test::PY_SIG + Q565Test::PNG_SUFFIX                // output image
+                                                                              << pathToRawImages + testFile  + Q565Test::PNG_SUFFIX;                           // Original Image
+            // Decode the previously encoded q565 image
+            QTest::newRow(testName.toStdString().data()) << Q565Test::Q565_IMAGE_PLUGIN                         // Encoder
+                                                         << outputDir + testFile + Q565Test::Q565_SUFFIX        // Input q565
+                                                         << outputDir + testFile + Q565Test::PNG_SUFFIX         // output image
+                                                         << pathToRawImages + testFile  + Q565Test::PNG_SUFFIX; // Original Image
+        }
+
     }
+
+
 
     void decodeCompare()
     {
-        QFETCH(QString, inputFile);
-        QFETCH(QString, outputFile);
         QFETCH(QString, encoder);
         QFETCH(QString, testFile);
-        //qDebug() << "[" << testCase++ << "] Testing " << encoder <<  ": " << inputFile <<  "\nagainst\n " << testFile;
+        QFETCH(QString, outputFile);
+        QFETCH(QString, originalImage);
         //QFileInfo inputInfo(inputFile);
         QImage inputImage;
         //QCOMPARE(inputInfo.exists(), true);
+        bool loadedFile{false};
         QBENCHMARK {
-            if(inputImage.load(inputFile) ){
-                inputImage.save(outputFile, "png");
-            }
+            loadedFile = inputImage.load(testFile);
         }
+        QVERIFY(loadedFile);
+        if(loadedFile) {
+            inputImage.save(outputFile, "png");
+        }
+        Q565Test::compareImages(originalImage, outputFile, inputImage,Q565Test::originalImages, Q565Test::corruptImages);
     }
 
     void cleanupTestCase()
     {
-        qDebug("Called after myFirstTest and mySecondTest.");
+        if(Q565Test::corruptImages.size() > 0) {
+            Q565Test::showCorruptImages();
+            Q565Test::originalImages.clear();
+            Q565Test::corruptImages.clear();
+        }
     }
+
 protected:
     QJsonArray testData;
     QString outputDir;
-    quint8  testCase = 1;
 
 };
 
