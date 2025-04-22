@@ -19,10 +19,9 @@ Q565 includes multiple compression methods and this code currently implementatio
 - [x] Lumocity difference
 - [x] Color table difference
 - [x] Unit test benchmarking encoding and decoding q565 image format
-- [ ] Unit Test for correctness of q565 implementation and correct image (decoding)
+- [x] Unit Test for correctness of q565 implementation and correct image (decoding)
 - [ ] Exact byte for byte output matching q565-rust library
 - [ ] Direct integration of q565-rust code for better unit testing
-- [ ] Add correct open source licensing and release
 
 This project can optionally utilize the [AIOLCDUnchained](https://github.com/brokenmass/AIOLCDUnchained) Python decoder to test images.
 The Q565 image format plugin is largely inspired and directed by [Q565 Rust Library](https://docs.rs/q565/latest/q565/) 
