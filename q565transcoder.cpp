@@ -185,7 +185,32 @@ QString Q565Transcoder::encodeQARGB32(QUrl fileUrl)
         if(fileInfo.exists() && fileInfo.isFile()) {
             mSizeOut = fileInfo.size();
         }
-        qDebug() << "failed to load q565 image";
     }
     return "file://" + outputPath;
 }
+
+QByteArray Q565Transcoder::loadFile(QUrl fileUrl)
+{
+    QImage image;
+    QString outputPath;
+    QByteArray array;
+    if(image.load(fileUrl.path())) {
+        //image = image.toImageFormat(QPixelFormat());
+        mSizeIn = image.sizeInBytes();
+        outputPath = fileUrl.path();
+        QString type = outputPath.mid(outputPath.lastIndexOf("."));
+        outputPath = fileUrl.path().replace(type, ".q565");
+        for (int y = 0; y < image.height(); ++y) {
+            array.append(reinterpret_cast<const char*>(image.constScanLine(y)), image.bytesPerLine());
+        }
+        // qDebug() << "Successfully loaded image";
+        //image.save(outputPath, "q565");
+        // QFileInfo fileInfo(outputPath);
+        // if(fileInfo.exists() && fileInfo.isFile()) {
+        //     mSizeOut = fileInfo.size();
+        // }
+        //qDebug() << "failed to load q565 image";
+    }
+    return array;
+}
+

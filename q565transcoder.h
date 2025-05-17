@@ -25,6 +25,7 @@ public:
     Q565Transcoder(QQuickItem* parent = nullptr);
     Q_INVOKABLE QString decodeQRGB565(QUrl fileUrl);
     Q_INVOKABLE QString encodeQARGB32(QUrl fileUrl);
+    Q_INVOKABLE QByteArray  loadFile(QUrl fileUrl);
 
 protected:
     void generateStatements(QUrl);

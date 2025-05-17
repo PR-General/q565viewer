@@ -3,6 +3,8 @@ import QtQuick
 import QtQuick.Dialogs
 import QtQuick.Controls
 import com.q565viewer.components
+import com.pr.rust.q565
+
 Window {
     width: 640
     height: 480
@@ -234,6 +236,8 @@ Window {
             } else {
                 console.log("Loading other file " + selectedFile)
                 inputFile.source = selectedFile;
+                let img = transcoder.loadFile(selectedFile)
+                rustQ565.loadImage(selectedFile, img);
                 outputPath = transcoder.encodeQARGB32(selectedFile);
                 console.log("Output file: " + outputPath);
                 outputFile.source = outputPath;
@@ -247,4 +251,8 @@ Window {
     Q565Transcoder {
         id:transcoder
     }
+    QRustQ565 {
+        id: rustQ565
+    }
+
 }

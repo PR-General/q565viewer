@@ -1,5 +1,6 @@
-  #ifndef Q565_H
+#ifndef Q565_H
 #define Q565_H
+
 #include <QRgb>
 #include <QMap>
 #include <QDebug>
@@ -261,9 +262,12 @@ namespace Q565_Encoder {
             line = (QRgb*)convertedImage.scanLine(y);
             for(int x = 0; x < convertedImage.width(); ++x) {
                 rgb = line[x];
+
                 /*** Encode entire image using next two lines ***/
                 // currentPixel = get565Pixel2(rgb);
                 //encodeFullPixel(encodeArray, currentPixel);
+                /*** End 'Encode Full Pixel' ***/
+
                 if((previousRgb == rgb) && ( y > 0 | x > 0) ) { // if diff is 0 for rgb!
                     if( run > 61) { // 62
                         pixelsWrittenOfOneColor += run;
@@ -437,9 +441,6 @@ namespace Q565_Encoder {
         RUN_STATEMENT,
         END_STATEMENT,
         UNKNOWN_STATEMENT
-    };
-
-    union Q565Pixel {
     };
 
     class Q565Statement {
